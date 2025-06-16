@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Text Encryption & Decryption</title>
+  <link href="https://fonts.googleapis.com/css?family=Inter&display=swap" rel="stylesheet" />
+  <link href="../static/main.css" rel="stylesheet" />
+</head>
+<body>
+  <div class="page-container">
+    <span class="page-title">Text<br>Encryption & Decryption</span>
+	<div id="choose-algorithm-method">
+		<div class="method-selector-bar">
+			<select id="mode" onchange="updateMode()">
+				<option value="encrypt">Encrypt</option>
+				<option value="decrypt">Decrypt</option>
+			</select>
+		</div>
+		<div class="algorithm-selector-bar">
+			<select id="algorithm" onchange="updateAlgorithm()">
+				<option value="aes">Advanced Encryption Standard (AES)</option>
+				<option value="3des">Triple Data Encryption Standard (3DES)</option>
+				<option value="rc4">Rivest Cipher 4 (RC4)</option>
+				<option value="rsa">Rivest-Shamir Adleman (RSA)</option>
+				<!--<option value="ecc">Elliptic Curve Cryptography (ECC)</option>-->
+			</select>
+		</div>
+	</div>
+    <div id="input-output-boxes">
+		<div class="input-box">
+			<textarea id="inputText" placeholder="Enter your text here"></textarea>
+		</div>
+
+		<div class="output-box">
+			<textarea id="outputText" readonly placeholder="Encrypted text..."></textarea>
+		</div>
+	</div>
+	
+	<div id="key-and-execute">
+		<div id="key-bar">
+			<div class="key-text-bar">
+				<textarea id="key-text" placeholder="Enter your key here"></textarea>
+				<div id="public-private-key-texts">
+					<p>Private Key</p>
+					<textarea id="private-key-text" readonly placeholder="Private key..."></textarea>
+					<p>Public Key</p>
+					<textarea id="public-key-text" readonly placeholder="Public key..."></textarea>
+				</div>
+			</div>
+			<div id="generate-public-private-key-button">
+				<button onclick="generateAsymmetricKeys()">Generate Key</button>
+			</div>
+		</div>
+
+		<div class="execute-button-wrapper">
+			<button id="execute-button" onclick="execute()">Encrypt</button>
+		</div>
+	</div>
+  </div>
+
+  <script>
+    const WEBSITE_ROOT_LINK = "/"
+
+    function execute() {
+      const mode = document.getElementById('mode').value;
+      const input = document.getElementById('inputText').value;
+      const algorithm = document.getElementById('algorithm').value;
+      const key = document.getElementById('key-text').value;
+      const outputText = document.getElementById("outputText");
+
+      fetch(WEBSITE_ROOT_LINK, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Event": "execute"
+        },
+        body: JSON.stringify({
+          "mode": mode,
+          "input": input,
+          "algorithm": algorithm,
+          "key": key,
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log(data)
+        outputText.value = data.output;
+      })
+      .catch(error => console.error('Error:', error));
+    }
+
+    function isAlgorithmAsymmetric(algorithm) {
+      if (algorithm == "rsa" || algorithm == "ecc") {
+        return true;
+      }
+      return false;
+    }
+
+    function generateAsymmetricKeys() {
+      const algorithm = document.getElementById('algorithm').value;
+      fetch(WEBSITE_ROOT_LINK, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Event": "generatePublicPrivateKeys"
+        },
+        body: JSON.stringify({
+          "algorithm": algorithm,
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+         const privateKeyText = document.getElementById("private-key-text");
+         const publicKeyText = document.getElementById("public-key-text");
+
+         privateKeyText.value = data.privateKey;
+         publicKeyText.value = data.publicKey;
+       })
+      .catch(error => console.error('Error:', error));
+    }
+
+	function updateMode() {
+	  const mode = document.getElementById('mode').value;
+	  const executeButton = document.getElementById('execute-button');
+	  const inputText = document.getElementById('inputText');
+	  const outputText = document.getElementById('outputText');
+	    
+	  inputText.value = '';
+	  outputText.value = '';
+	  
+	  if (mode === 'encrypt') {
+		executeButton.textContent = 'Encrypt';
+		outputText.placeholder = 'Encrypted text...';
+	  } else {
+		executeButton.textContent = 'Decrypt';
+		outputText.placeholder = 'Decrypted text...';
+	  }
+	}
+    
+    function updateAlgorithm() {
+      const algorithm = document.getElementById("algorithm").value;
+      const symmetricKeyText = document.getElementById("key-text");
+      const asymmetricKeyTexts = document.getElementById("public-private-key-texts");
+      const generateAsymmetricKeys = document.getElementById("generate-public-private-key-button");
+	  const inputText = document.getElementById('inputText');
+	  const outputText = document.getElementById('outputText');
+	    
+	  inputText.value = '';
+	  outputText.value = '';
+
+      if (isAlgorithmAsymmetric(algorithm)) {
+        // Asymmetric Algorithms (RSA and ECC)
+        symmetricKeyText.value = "";
+        symmetricKeyText.style.display = "none";
+        asymmetricKeyTexts.style.display = "block";
+        generateAsymmetricKeys.style.display = "block";
+        return;
+      }
+
+      // Symmetric Algorithms (AES, 3DES, and RC4)
+      symmetricKeyText.style.display = "block";
+      asymmetricKeyTexts.style.display = "none";
+      generateAsymmetricKeys.style.display = "none";
+    }
+  </script>
+</body>
+</html>
